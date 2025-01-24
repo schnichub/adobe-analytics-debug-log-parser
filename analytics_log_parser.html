@@ -289,13 +289,19 @@ function transformLogData(logData) {
                 transformedEntry[key] = jsonData[key];
             } else {
                 for (const dataKey in jsonData.data) {
-                    if (dataKey !== 'contextdata') {
-                        transformedEntry[dataKey] = jsonData.data[dataKey];
-                    } else {
+					if (dataKey == 'contextdata') {
                         for (const contextDataKey in jsonData.data.contextdata) {
                             transformedEntry[`contextdata.${contextDataKey}`] = jsonData.data.contextdata[contextDataKey];
-                        }
-                    }
+                        }					
+					} else {
+						if (dataKey == 'xdm') {
+							for (const xdmKey in jsonData.data.xdm) {
+								transformedEntry[`xdm.${xdmKey}`] = jsonData.data.xdm[xdmKey];
+							}					
+						} else {
+							transformedEntry[dataKey] = jsonData.data[dataKey];
+						}
+					}
                 }
             }
         }
@@ -307,7 +313,7 @@ function transformLogData(logData) {
 function parseData(data) {
     const lines = data.trim().split('\n');
     const parsed = {};
-    let currentContextDataKey = null;
+    let currentNode = null;
 	
     lines.forEach(line => {
         const index = line.indexOf(':');
@@ -329,23 +335,25 @@ function parseData(data) {
             // Entferne Anführungszeichen vom Key für weitere Verarbeitung
             key = key.replace(/^"|"$/g, '');
 			
-            // Überprüfen, ob der Schlüssel im contextdata-Bereich ist und Präfix hinzufügen
-            if (currentContextDataKey) {
-				if (key == 'mask') {
-					currentContextDataKey = null;
+            // Überprüfen, ob der Schlüssel im contextdata-/XDM-Bereich ist und Präfix hinzufügen
+            if (currentNode == 'contextdata' || currentNode == 'xdm') {
+				if (key == 'mask' || key == 'state' || key == 'action') {
+					currentNode = null;
 				} else {
-					key = `${currentContextDataKey}.${key}`;
+					key = `${currentNode}.${key}`;
 				}
             }
 
-            // Aktualisiere den aktuellen contextdata-Bereich
+            // Aktualisiere den aktuellen contextdata-/XDM-Bereich
 			if (key === 'contextdata') {
-                currentContextDataKey = key;
+                currentNode = key;
+            } else if (key === 'xdm') {
+                currentNode = key;
             } else if (key === 'data') {
             } else if (key === 'mask') {
 				parsed[key] = JSON.parse(value.replace(')', ''));
             } else {
-                parsed[key] = JSON.parse(value);
+				if(value!=="")parsed[key] = JSON.parse(value);
             }
         }
     });
