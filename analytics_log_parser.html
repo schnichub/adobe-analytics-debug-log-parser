@@ -339,6 +339,7 @@ function parseData(data) {
             if (currentNode == 'contextdata' || currentNode == 'xdm') {
 				if (key == 'mask' || key == 'state' || key == 'action') {
 					currentNode = null;
+				} else if (key == 'contextdata' || key == 'xdm') {
 				} else {
 					key = `${currentNode}.${key}`;
 				}
